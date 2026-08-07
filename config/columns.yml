@@ -1,0 +1,7 @@
+date: Date
+ticker: Ticker
+turnover: Turnover
+volume: Volume
+trades: Number of Trades
+vwap: VWAP
+close: Close
