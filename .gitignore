@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Raw Nasdaq downloads
+data/
+
+# Generated reports
+reports/
+
+# OS / editor files
+.DS_Store
+.vscode/
+
+# Temporary files
+*.tmp
+*.log
