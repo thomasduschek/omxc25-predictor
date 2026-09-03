@@ -38,6 +38,9 @@ jobs:
       - name: Update C25 membership
         run: python -m src.build_c25_membership_history
 
+      - name: Check official OMXC25 constituents
+        run: python -m src.fetch_c25_constituents
+
       - name: Verify database
         run: |
           python - <<'PY'
