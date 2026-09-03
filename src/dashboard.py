@@ -95,6 +95,65 @@ min_db_date = pd.to_datetime(
     db_range.loc[0, "min_date"]
 ).date()
 
+# =========================================================
+# DATA STATUS
+# =========================================================
+
+data_status = con.execute(
+    """
+    SELECT
+        u.ticker,
+        MAX(d.date) AS latest_date
+    FROM universe u
+    LEFT JOIN daily_market d
+        ON u.ticker = d.ticker
+    GROUP BY u.ticker
+    ORDER BY u.ticker
+    """
+).df()
+
+data_status["latest_date"] = pd.to_datetime(
+    data_status["latest_date"]
+).dt.date
+
+latest_market_date = data_status["latest_date"].max()
+
+total_securities = len(data_status)
+
+updated_mask = (
+    data_status["latest_date"]
+    == latest_market_date
+)
+
+updated_securities = int(
+    updated_mask.sum()
+)
+
+lagging_tickers = data_status.loc[
+    ~updated_mask,
+    "ticker"
+].tolist()
+
+
+st.markdown("#### Datastatus")
+
+if updated_securities == total_securities:
+
+    st.success(
+        f"✓ {updated_securities}/{total_securities} aktier "
+        f"opdateret til "
+        f"{latest_market_date:%d-%m-%Y}"
+    )
+
+else:
+
+    st.warning(
+        f"⚠ {updated_securities}/{total_securities} aktier "
+        f"opdateret til "
+        f"{latest_market_date:%d-%m-%Y}. "
+        f"Mangler: {', '.join(lagging_tickers)}"
+    )
+    
 max_db_date = pd.to_datetime(
     db_range.loc[0, "max_date"]
 ).date()
