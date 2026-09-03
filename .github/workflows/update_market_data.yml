@@ -35,6 +35,9 @@ jobs:
       - name: Import Nasdaq data
         run: python -m src.import_nasdaq
 
+      - name: Update C25 membership
+        run: python -m src.build_c25_membership_history
+
       - name: Verify database
         run: |
           python - <<'PY'
