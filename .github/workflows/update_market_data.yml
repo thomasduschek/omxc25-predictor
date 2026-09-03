@@ -1,0 +1,70 @@
+name: Update OMXC25 market data
+
+on:
+  # Kører mandag-fredag kl. 19:00 UTC
+  # = 21:00 dansk sommertid / 20:00 dansk vintertid
+  schedule:
+    - cron: "0 19 * * 1-5"
+
+  # Gør det også muligt at starte opdateringen manuelt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch latest Nasdaq data
+        run: python -m src.fetch_nasdaq
+
+      - name: Import Nasdaq data
+        run: python -m src.import_nasdaq
+
+      - name: Verify database
+        run: |
+          python - <<'PY'
+          from src.db import connect
+
+          con = connect()
+
+          result = con.execute("""
+              SELECT
+                  COUNT(DISTINCT ticker) AS securities,
+                  MAX(date) AS latest_date
+              FROM daily_market
+          """).fetchone()
+
+          print(f"Securities: {result[0]}")
+          print(f"Latest market date: {result[1]}")
+
+          con.close()
+          PY
+
+      - name: Commit updated database
+        run: |
+          if git diff --quiet db/omxc25.duckdb; then
+            echo "No new market data to commit."
+            exit 0
+          fi
+
+          git config user.name "OMXC25 Data Bot"
+          git config user.email "actions@github.com"
+
+          git add db/omxc25.duckdb
+          git commit -m "Update Nasdaq market data"
+          git push
