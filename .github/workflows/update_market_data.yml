@@ -39,7 +39,13 @@ jobs:
         run: python -m src.build_c25_membership_history
 
       - name: Check official OMXC25 constituents
-        run: python -m src.fetch_c25_constituents
+        id: c25_check
+        run: |
+            set +e
+            python -m src.fetch_c25_constituents --strict
+            code=$?
+            echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+            exit 0
 
       - name: Verify database
         run: |
@@ -74,3 +80,31 @@ jobs:
           git add db/omxc25.duckdb
           git commit -m "Update Nasdaq market data"
           git push
+
+      - name: Report OMXC25 constituent status
+        run: |
+            code="${{ steps.c25_check.outputs.exit_code }}"
+
+            if [ "$code" = "0" ]; then
+              echo "## ✅ OMXC25 membership OK" >> "$GITHUB_STEP_SUMMARY"
+              echo "Nasdaq's official OMXC25 basket matches the local membership history." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            if [ "$code" = "2" ]; then
+              echo "## ⚠️ OMXC25 CHANGE DETECTED" >> "$GITHUB_STEP_SUMMARY"
+              echo "Nasdaq's official OMXC25 basket differs from the local membership history." >> "$GITHUB_STEP_SUMMARY"
+              echo "Market data has still been updated and committed." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+
+            if [ "$code" = "3" ]; then
+              echo "## ❌ Invalid OMXC25 component count" >> "$GITHUB_STEP_SUMMARY"
+              echo "Nasdaq did not return exactly 25 OMXC25 securities." >> "$GITHUB_STEP_SUMMARY"
+              echo "No membership change has been applied." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+
+            echo "## ❌ Unexpected OMXC25 check result" >> "$GITHUB_STEP_SUMMARY"
+            echo "Exit code: $code" >> "$GITHUB_STEP_SUMMARY"
+            exit 1

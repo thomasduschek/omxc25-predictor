@@ -1,5 +1,6 @@
 from datetime import date
 from io import BytesIO
+import sys
 
 import pandas as pd
 import requests
@@ -173,51 +174,36 @@ def main():
 
     print()
 
-    if len(official) != 25:
-        print(
-            "WARNING: Nasdaq export does not "
-            "contain exactly 25 securities."
-        )
-        print(
-            "No automatic action should be taken."
-        )
-
-    print("ADDED:")
-    if added:
-        for ticker in added:
-            print(f"  + {ticker}")
-    else:
-        print("  None")
-
-    print()
-
-    print("REMOVED:")
-    if removed:
-        for ticker in removed:
-            print(f"  - {ticker}")
-    else:
-        print("  None")
-
-    print()
-
     if (
         len(official) == 25
         and not added
         and not removed
     ):
+        status = "OK"
+        exit_code = 0
+
         print(
             "STATUS: OK - official Nasdaq OMXC25 "
             "matches local membership history."
         )
+
     elif len(official) == 25:
+        status = "CHANGE_DETECTED"
+        exit_code = 2
+
         print(
             "STATUS: CHANGE DETECTED"
         )
+
         print(
             "Nasdaq OMXC25 differs from the "
             "local membership history."
         )
+
     else:
+        status = "INVALID"
+        exit_code = 3
+
         print(
             "STATUS: INVALID COMPONENT COUNT"
         )
@@ -234,6 +220,11 @@ def main():
             f"{row['Company Name']}"
         )
 
+    print()
+    print(f"MACHINE_STATUS={status}")
+
+    if "--strict" in sys.argv:
+        raise SystemExit(exit_code)
 
 if __name__ == "__main__":
     main()
