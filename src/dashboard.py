@@ -329,7 +329,20 @@ ranking = con.execute(
     SELECT
         u.ticker,
         u.company,
-        u.current_c25,
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM c25_membership_history h
+                WHERE h.ticker = u.ticker
+                  AND h.valid_from <= ?
+                  AND (
+                      h.valid_to IS NULL
+                      OR h.valid_to >= ?
+                  )
+            )
+            THEN TRUE
+            ELSE FALSE
+        END AS current_c25,
         COALESCE(SUM(d.turnover), 0) AS accumulated_turnover,
         COUNT(d.date) AS trading_days,
         MAX(d.date) AS latest_date
@@ -339,13 +352,16 @@ ranking = con.execute(
      AND d.date BETWEEN ? AND ?
     GROUP BY
         u.ticker,
-        u.company,
-        u.current_c25
+        u.company
     ORDER BY accumulated_turnover DESC
     """,
-    [selected_start, selected_end],
+    [
+        selected_end,
+        selected_end,
+        selected_start,
+        selected_end,
+    ],
 ).df()
-
 
 ranking["rank"] = (
     ranking["accumulated_turnover"]
