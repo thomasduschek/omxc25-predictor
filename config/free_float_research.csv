@@ -1,0 +1,11 @@
+ticker,as_of_date,data_type,owner,share_pct,vote_pct,threshold_operator,threshold_pct,owner_type,include_in_float,shares,source_type,source,confidence,notes
+BAVA,2026-06-30,ownership,ATP,11.56,11.56,,,pension_fund,true,,shareholder_report,ATP H1 2026 equity portfolio,1.0,ATP is non-strategic under Nasdaq Alternate Float
+NOVO B,2025-12-31,ownership,Novo Holdings A/S,,,,,controlling_shareholder,false,,annual_report,Novo Nordisk Annual Report 2025,1.0,Company-reported listed B-share free float is 94.13%; strategic holding excluded
+NDA DK,2026-07-31,ownership,BlackRock,5.70,,,,fund,true,,company_ir,Nordea largest shareholders July 2026,1.0,Non-strategic fund under Nasdaq Alternate Float
+NDA DK,2026-07-31,treasury,,,,,,,,9045443,company_ir,Nordea largest shareholders July 2026,1.0,Treasury shares held for remuneration
+DSV,2025-07-04,ownership,Agility Group,8.03,8.03,,,listed_company,false,,company_announcement,DSV major shareholder announcement 1158,1.0,Strategic corporate shareholder
+DSV,2025-12-31,ownership,Capital Group Companies,5.10,,,,fund,true,,annual_report,DSV Annual Report 2025,1.0,Non-strategic fund
+DANSKE,2025-12-31,ownership,A.P. Moller Holding Group,20.80,,,,controlling_shareholder,false,,annual_report,Danske Bank Annual Report 2025,1.0,Strategic controlling shareholder
+DANSKE,2026-04-29,ownership,BlackRock,4.93,4.93,,,fund,true,,company_announcement,Danske Bank major shareholder announcement 4 May 2026,1.0,Financial instruments excluded from share_pct
+VWS,2026-09-01,ownership,BlackRock,,,,,fund,true,,company_ir,Vestas share information,1.0,Major shareholder between 5 and 10 percent; non-strategic fund
+VWS,2026-09-01,ownership,Capital Group Companies,,,,,fund,true,,company_ir,Vestas share information,1.0,Major shareholder between 5 and 10 percent; non-strategic fund
