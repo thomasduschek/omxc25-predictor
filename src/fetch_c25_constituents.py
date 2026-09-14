@@ -135,96 +135,64 @@ def get_expected_c25():
 
 
 def main():
-    official_df, source_url = (
-        download_official_c25()
-    )
+    init()
+    con = connect()
 
-    official = set(
-        official_df["Security Symbol"]
-    )
+    before = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM free_float_source_events
+        """
+    ).fetchone()[0]
 
-    expected = get_expected_c25()
-
-    added = sorted(
-        official - expected
-    )
-
-    removed = sorted(
-        expected - official
-    )
-
+    print("FREE FLOAT SOURCE COLLECTOR")
     print("=" * 72)
-    print("OFFICIAL OMXC25 CONSTITUENT CHECK")
-    print("=" * 72)
-
-    print()
-    print("Source:")
-    print(source_url)
-
-    print()
-    print(
-        "Official Nasdaq components:",
-        len(official),
-    )
-
-    print(
-        "Expected active components:",
-        len(expected),
-    )
-
+    print(f"Existing raw source events: {before}")
     print()
 
-    if (
-        len(official) == 25
-        and not added
-        and not removed
-    ):
-        status = "OK"
-        exit_code = 0
+    nasdaq_events = collect_events()
 
-        print(
-            "STATUS: OK - official Nasdaq OMXC25 "
-            "matches local membership history."
+    saved = 0
+
+    for event in nasdaq_events:
+        published = None
+
+        if event.get("pub_date"):
+            published = parsedate_to_datetime(
+                event["pub_date"]
+            ).date()
+
+        save_event(
+            con,
+            ticker=event["ticker"],
+            event_date=published,
+            published_date=published,
+            event_type=event["event_type"],
+            title=event["title"],
+            source_type="nasdaq_news",
+            source_url=event["link"],
+            source_id=event["guid"],
+            raw_text=event.get("raw_text"),
+            status="RAW",
+            confidence=1.0,
         )
 
-    elif len(official) == 25:
-        status = "CHANGE_DETECTED"
-        exit_code = 2
+        saved += 1
 
-        print(
-            "STATUS: CHANGE DETECTED"
-        )
+    after = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM free_float_source_events
+        """
+    ).fetchone()[0]
 
-        print(
-            "Nasdaq OMXC25 differs from the "
-            "local membership history."
-        )
+    print(f"Nasdaq matched events:    {len(nasdaq_events)}")
+    print(f"Nasdaq events processed:  {saved}")
+    print(f"Events before:            {before}")
+    print(f"Events after:             {after}")
+    print(f"New database events:      {after - before}")
 
-    else:
-        status = "INVALID"
-        exit_code = 3
-
-        print(
-            "STATUS: INVALID COMPONENT COUNT"
-        )
-
-    print()
-    print("OFFICIAL COMPONENTS")
-    print("-" * 72)
-
-    for _, row in official_df.sort_values(
-        "Security Symbol"
-    ).iterrows():
-        print(
-            f"{row['Security Symbol']:12} "
-            f"{row['Company Name']}"
-        )
-
-    print()
-    print(f"MACHINE_STATUS={status}")
-
-    if "--strict" in sys.argv:
-        raise SystemExit(exit_code)
+    con.close()
 
 if __name__ == "__main__":
     main()

@@ -15,6 +15,103 @@ def init():
     con = connect()
 
     con.execute(
+        "CREATE TABLE IF NOT EXISTS company_market_snapshot ("
+        "snapshot_date DATE, "
+        "ticker VARCHAR, "
+        "shares BIGINT, "
+        "market_cap DOUBLE, "
+        "source VARCHAR, "
+        "PRIMARY KEY (snapshot_date, ticker))"
+    )
+    
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS ownership_positions ("
+        "as_of_date DATE, "
+        "ticker VARCHAR, "
+        "owner VARCHAR, "
+        "share_pct DOUBLE, "
+        "vote_pct DOUBLE, "
+        "threshold_operator VARCHAR, "
+        "threshold_pct DOUBLE, "
+        "owner_type VARCHAR, "
+        "include_in_float BOOLEAN, "
+        "source_type VARCHAR, "
+        "source VARCHAR, "
+        "confidence DOUBLE, "
+        "PRIMARY KEY (as_of_date, ticker, owner, source))"
+    )
+
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS treasury_shares ("
+        "as_of_date DATE, "
+        "ticker VARCHAR, "
+        "shares BIGINT, "
+        "share_pct DOUBLE, "
+        "source_type VARCHAR, "
+        "source VARCHAR, "
+        "confidence DOUBLE, "
+        "PRIMARY KEY (as_of_date, ticker, source))"
+    )
+
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS free_float_snapshot ("
+        "as_of_date DATE, "
+        "ticker VARCHAR, "
+        "total_shares BIGINT, "
+        "market_cap DOUBLE, "
+        "excluded_owner_pct DOUBLE, "
+        "treasury_pct DOUBLE, "
+        "free_float_factor DOUBLE, "
+        "free_float_market_cap DOUBLE, "
+        "market_cap_rank INTEGER, "
+        "top35_eligible BOOLEAN, "
+        "calculation_method VARCHAR, "
+        "source_summary VARCHAR, "
+        "PRIMARY KEY (as_of_date, ticker))"
+    )
+
+    con.execute(
+    "CREATE TABLE IF NOT EXISTS free_float_source_events ("
+    "event_id VARCHAR PRIMARY KEY, "
+    "ticker VARCHAR, "
+    "event_date DATE, "
+    "published_date DATE, "
+    "event_type VARCHAR, "
+    "title VARCHAR, "
+    "source_type VARCHAR, "
+    "source_url VARCHAR, "
+    "source_id VARCHAR, "
+    "raw_text VARCHAR, "
+    "owner VARCHAR, "
+    "share_pct DOUBLE, "
+    "vote_pct DOUBLE, "
+    "shares BIGINT, "
+    "status VARCHAR, "
+    "confidence DOUBLE, "
+    "fetched_at TIMESTAMP"
+    ")"
+    )
+    
+    con.execute(
+    """
+    CREATE TABLE IF NOT EXISTS share_capital_history (
+        as_of_date DATE,
+        ticker VARCHAR,
+        total_shares BIGINT,
+        share_class VARCHAR,
+        source_type VARCHAR,
+        source VARCHAR,
+        confidence DOUBLE,
+        PRIMARY KEY (
+            as_of_date,
+            ticker,
+            source
+        )
+    )
+    """
+)
+
+    con.execute(
         "CREATE TABLE IF NOT EXISTS universe ("
         "ticker VARCHAR PRIMARY KEY,"
         "company VARCHAR,"
