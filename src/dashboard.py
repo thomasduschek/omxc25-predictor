@@ -26,6 +26,7 @@ from src.reference_period import active_period
 from src.projected_cutoff import (
     build_forecast,
     simulate_one_ticker,
+    critical_run_rate,
     SCENARIO_MULTIPLIERS,
 )
 
@@ -1008,22 +1009,24 @@ if is_active_period:
                 .iloc[0]
             )
 
-            s1, s2, s3 = (
-                st.columns(3)
+            critical = critical_run_rate(
+                forecast_df,
+                scenario_ticker,
+                forecast["remaining_days"],
+            )
+
+            s1, s2, s3, s4 = (
+                st.columns(4)
             )
 
             s1.metric(
                 "Nuværende liquidity rank",
-                (
-                    f"#{int(selected_security['current_liquidity_rank'])}"
-                ),
+                f"#{int(selected_security['current_liquidity_rank'])}",
             )
 
             s2.metric(
                 "Baseline projected rank",
-                (
-                    f"#{int(selected_security['projected_liquidity_rank'])}"
-                ),
+                f"#{int(selected_security['projected_liquidity_rank'])}",
             )
 
             s3.metric(
@@ -1033,6 +1036,40 @@ if is_active_period:
                     f"mio. DKK/dag"
                 ),
             )
+
+            if critical is not None:
+                critical_pct = (
+                    critical["multiplier"] * 100
+                    if critical["multiplier"] is not None
+                    else None
+                )
+                critical_label = (
+                    "Minimum for Top 25"
+                    if critical["currently_inside"]
+                    else "Krævet for Top 25"
+                )
+                if critical_pct is None:
+                    critical_delta = None
+                elif critical["currently_inside"]:
+                    reduction_pct = max(0.0, 100.0 - critical_pct)
+                    critical_delta = (
+                        f"{critical_pct:.0f}% af nuværende · "
+                        f"kan falde {reduction_pct:.0f}%"
+                    )
+                else:
+                    uplift_pct = critical_pct - 100.0
+                    critical_delta = (
+                        f"{critical_pct:.0f}% af nuværende · "
+                        f"kræver {uplift_pct:+.0f}%"
+                    )
+                s4.metric(
+                    critical_label,
+                    f"{critical['required_avg'] / 1e6:.1f} mio. DKK/dag",
+                    delta=critical_delta,
+                    delta_color="off",
+                )
+            else:
+                s4.metric("Kritisk run-rate", "–")
 
             scenario_rows = []
 
@@ -1098,6 +1135,44 @@ if is_active_period:
                     }
                 )
 
+            if (
+                critical is not None
+                and critical["multiplier"] is not None
+            ):
+                critical_result = simulate_one_ticker(
+                    forecast_df,
+                    scenario_ticker,
+                    critical["multiplier"] + 1e-9,
+                    forecast["remaining_days"],
+                )
+
+                if critical_result is not None:
+                    critical_name = (
+                        "Minimum Top 25"
+                        if critical["currently_inside"]
+                        else "Krævet Top 25"
+                    )
+                    scenario_rows.append(
+                        {
+                            "Run-rate": (
+                                f"{critical_name} "
+                                f"({critical['multiplier']:.0%})"
+                            ),
+                            "Projected rank": critical_result["rank"],
+                            "Projected turnover (mia. DKK)": (
+                                critical_result["turnover"] / 1e9
+                            ),
+                            "Hurdle": critical_result["cutoff_ticker"],
+                            "Hurdle turnover (mia. DKK)": (
+                                critical_result["cutoff_turnover"] / 1e9
+                            ),
+                            "Margin (mio. DKK)": (
+                                critical_result["gap_to_cutoff"] / 1e6
+                            ),
+                            "Status": "THRESHOLD",
+                        }
+                    )
+
             scenario_df = (
                 pd.DataFrame(
                     scenario_rows
@@ -1136,10 +1211,14 @@ if is_active_period:
             )
 
             st.caption(
-                "80/100/120 %-scenarierne ændrer kun "
-                "den valgte akties fremtidige run-rate. "
-                "Alle øvrige Top-35-aktier fortsætter "
-                "på deres baseline run-rate."
+                "80/100/120 %-scenarierne ændrer kun den valgte "
+                "akties fremtidige run-rate. Alle øvrige Top-35-aktier "
+                "fortsætter på deres baseline run-rate. 'Krævet Top 25' "
+                "viser den minimum run-rate, en aktie uden for Top 25 "
+                "skal have resten af referenceperioden for at komme ind. "
+                "'Minimum Top 25' viser tilsvarende, hvor langt en aktie "
+                "inden for Top 25 kan reducere sin run-rate og stadig "
+                "fastholde en Top-25-position."
             )
 
         # =================================================

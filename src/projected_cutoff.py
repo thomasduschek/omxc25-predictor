@@ -360,6 +360,62 @@ def add_required_run_rate(
     return df
 
 
+def critical_run_rate(
+    df,
+    ticker,
+    remaining_days,
+):
+    """
+    Return the critical future run-rate for a security.
+
+    For a security currently outside Top 25, this is the
+    minimum future average daily turnover required to reach
+    Top 25. For a security currently inside Top 25, it is the
+    minimum future average daily turnover required to remain
+    Top 25. All other Top-35 securities stay at baseline.
+    """
+    target_rows = df[df["ticker"] == ticker]
+
+    if target_rows.empty:
+        return None
+
+    row = target_rows.iloc[0]
+    required_avg = row["required_future_avg"]
+
+    if remaining_days <= 0 or pd.isna(required_avg):
+        return None
+
+    current_avg = float(row["avg_daily_turnover"])
+    required_avg = float(required_avg)
+    current_rank = int(row["current_liquidity_rank"])
+    baseline_rank = int(row["projected_liquidity_rank"])
+
+    multiplier = (
+        required_avg / current_avg
+        if current_avg > 0
+        else None
+    )
+
+    currently_inside = current_rank <= CUTOFF_RANK
+
+    return {
+        "ticker": ticker,
+        "current_rank": current_rank,
+        "baseline_rank": baseline_rank,
+        "currently_inside": currently_inside,
+        "direction": "DEFEND" if currently_inside else "CHALLENGE",
+        "label": (
+            "Minimum run-rate to remain Top 25"
+            if currently_inside
+            else "Required run-rate to reach Top 25"
+        ),
+        "current_avg": current_avg,
+        "required_avg": required_avg,
+        "multiplier": multiplier,
+        "competitor": row["projected_cutoff_competitor"],
+    }
+
+
 # =========================================================
 # STATUS
 # =========================================================
